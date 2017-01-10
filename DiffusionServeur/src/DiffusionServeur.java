@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 
 /**
@@ -16,7 +17,7 @@ import java.util.HashMap;
  */
 public class DiffusionServeur {
     // Création du socket point à point pour l'envoi de packet UDP
-    int port;
+    short port;
     DatagramSocket pointAPointSocket;
     ArrayList<Site> voisins = new ArrayList<>();
     int numberoSite = 1;
@@ -25,6 +26,54 @@ public class DiffusionServeur {
     public DiffusionServeur(int port) throws SocketException {
         port = port;
         pointAPointSocket = new DatagramSocket(port);
+    }
+
+
+    byte[] id (short port, short cpt) throws UnknownHostException {
+        byte[] id = new byte[8];
+        byte[] ip = new byte[4];
+        ip =  Inet4Address.getLocalHost().getAddress();
+
+        ByteBuffer bufferportByte = ByteBuffer.allocate(2);
+        ByteBuffer bufferportcptByte = ByteBuffer.allocate(2);
+
+        byte[] portByte = bufferportByte.putShort(port).array();
+        byte[] cptByte = bufferportcptByte.putShort(cpt).array();
+
+        //TODO mettre de constante
+        System.arraycopy(cptByte,0,id,6,2);
+        System.arraycopy(portByte,0,id,4,2);
+        System.arraycopy(ip,0,id,0,4);
+        System.out.println(ip.length);
+        System.out.println(Inet4Address.getLocalHost().getHostAddress());
+        return id;
+    }
+
+    byte[] sondeCreateur(byte[] message) throws UnknownHostException {
+        byte[] sonde = new byte[9+message.length-2];
+        sonde[0] = 1;
+        byte[] idMessage = new byte[8];
+        idMessage = id(port,idCpt);
+        System.arraycopy(idMessage,0,sonde,1,idMessage.length-1);
+        System.arraycopy(message,1,sonde,9,message.length-2);
+
+        return sonde;
+    }
+
+    /**
+     *
+     * @param b, contains the value to convert
+     * @return long, the value converted
+     *
+     * This method converts bytes to a long.
+     */
+    static int bytesToLong(byte[] b) {
+        int result = 0;
+        for (int i = 0; i < 8; i++) {
+            result <<= 8;
+            result |= (b[i] & 0xFF);
+        }
+        return result;
     }
 
     public void demarrer() throws IOException {
@@ -45,15 +94,18 @@ public class DiffusionServeur {
                     int id = idCpt++ * 10 + numberoSite;
                     l.put(id, voisins.size());
                     for(Site voisin : voisins){
-                        // TODO cast id en byte array
-                        // TODO ajouter le byte array packet.getData() enlever le premier byte
-                        buffer = new byte[]{1, (byte)numberoSite, id, packet.getData()};
-                        packet = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(voisin.getIp()), voisin.getPort());
+                        byte[] bufferSonde ;
+                        bufferSonde = sondeCreateur(buffer);
+                        packet = new DatagramPacket(bufferSonde, bufferSonde.length, InetAddress.getByName(voisin.getIp()), voisin.getPort());
                         pointAPointSocket.send(packet);
+                        l.put(bytesToLong(id(port,idCpt)),voisins.size());
                     }
                     break;
                 case 1:
-                    (ID,msg') ¬ msg -- Décomposition du contenu de msg
+                    pointAPointSocket.receive(packet);
+                    byte[] buffer2 = packet.getData();
+                    Arrays.copyOfRange(packet.getData(), 9, buffer2.length-1);
+                    /*(ID,msg') ¬ msg -- Décomposition du contenu de msg
                     if ID Î L then
                         Retirer (ID,a) de L
                         if a > 1 then
@@ -65,14 +117,14 @@ public class DiffusionServeur {
                         envoyer(msg') à l'application locale
                         L ¬ L È (ID,| Voisini | - 1)
                     end if
-                    break;
+                    break;*/
                 case 2:
                     byte[] idBuffer = {packet.getData()[1], packet.getData()[2], packet.getData()[3], packet.getData()[4], packet.getData()[5], packet.getData()[6]};
-                    Retirer (msg,a) de L
+                    /*Retirer (msg,a) de L
                     if a > 1 then
                     L ¬ L È (msg,a-1)
                     end if
-                    break;
+                    break;*/
             }
         }
     }
