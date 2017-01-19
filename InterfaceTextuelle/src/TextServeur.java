@@ -8,7 +8,7 @@ public class TextServeur {
     DatagramSocket pointAPointSocket;
 
     public TextServeur() throws SocketException {
-        pointAPointSocket = new DatagramSocket(1235);
+        pointAPointSocket = new DatagramSocket(1236);
         new Thread(() -> {
             DatagramSocket pointAPointSocket1 = null;
             try {
@@ -34,10 +34,13 @@ public class TextServeur {
         if(msg.getBytes().length > 230){
             System.out.println("Le message doit faire moins de 230 caractères");
         }
-        byte[] packetBuffer = new byte[1 + msg.getBytes().length];
+        byte[] packetBuffer = new byte[1 + msg.getBytes().length+1];
         packetBuffer[0] = 0;
-        System.arraycopy(msg.getBytes(), 0, packetBuffer, 1, msg.getBytes().length);
+        packetBuffer[1] = (byte)msg.getBytes().length;
+        System.arraycopy(msg.getBytes(), 0, packetBuffer, 2, msg.getBytes().length);
 
-        pointAPointSocket.send(new DatagramPacket(packetBuffer, packetBuffer.length, InetAddress.getByName("localhost"), 1234));
+        System.out.println("taille : " + msg.getBytes().length);
+
+        pointAPointSocket.send(new DatagramPacket(packetBuffer, packetBuffer.length, InetAddress.getByName("localhost"), 1237));
     }
 }
