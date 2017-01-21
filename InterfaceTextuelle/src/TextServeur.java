@@ -6,9 +6,10 @@ public class TextServeur {
     // 2 datagram socket ?? synchronized ?
     // Configurer adresse et port du serveur de diffusion
     DatagramSocket pointAPointSocket;
+    int PortDiffusion = 1235;
 
     public TextServeur() throws SocketException {
-        pointAPointSocket = new DatagramSocket(1236);
+        pointAPointSocket = new DatagramSocket(1234);
         new Thread(() -> {
             DatagramSocket pointAPointSocket1 = null;
             try {
@@ -41,6 +42,6 @@ public class TextServeur {
 
         System.out.println("taille : " + msg.getBytes().length);
 
-        pointAPointSocket.send(new DatagramPacket(packetBuffer, packetBuffer.length, InetAddress.getByName("localhost"), 1237));
+        pointAPointSocket.send(new DatagramPacket(packetBuffer, packetBuffer.length, InetAddress.getByName("localhost"), 1235));
     }
 }
