@@ -20,15 +20,21 @@ public class DiffusionServeur {
     DatagramSocket pointAPointSocket;
     ArrayList<Site> voisins = new ArrayList<>();
     short idCpt = 0;
-    short ipPortLocal = 1236;
+    short ipPortLocal = 1234;
     final int tailleHeader = 16;
     final int tailleEcho = 15;
+    byte[] idSite;
+    int DEBUT_IDSITE = 1;
+    int FIN_IDSITE = 6;
+    int DEBUT_IDMESSAGE = 7;
+    int FIN_IDMESSAGE = 14;
+    int TAILLE_POSITION = 15;
 
     public DiffusionServeur(short port) throws SocketException {
         this.port = port;
         pointAPointSocket = new DatagramSocket(port);
         Site tmpSite = new Site("127.0.1.1",1237);
-        //voisins.add(tmpSite);
+        voisins.add(tmpSite);
     }
 
 
@@ -45,11 +51,9 @@ public class DiffusionServeur {
 
         byte[] cptByte = bufferCptByte.putShort(idCpt).array();
 
-        //TODO mettre de constante
-        System.out.print(port);
-        System.arraycopy(IPByte, 0, id, 0, 4);
-        System.arraycopy(portByte, 0, id, 4, 2);
-        System.arraycopy(cptByte, 0, id, 6, 2);
+        System.arraycopy(IPByte, 0, id, 0, IPByte.length);
+        System.arraycopy(portByte, 0, id, IPByte.length, portByte.length);
+        System.arraycopy(cptByte, 0, id, IPByte.length+portByte.length, cptByte.length);
 
         return id;
     }
@@ -63,10 +67,8 @@ public class DiffusionServeur {
         byte[] IPByte = bufferIPByte.putInt(ip).array();
         byte[] portByte = bufferPortByte.putShort(port).array();
 
-        //TODO mettre de constante
-        System.out.print(port);
-        System.arraycopy(IPByte, 0, id, 0, 4);
-        System.arraycopy(portByte, 0, id, 4, 2);
+        System.arraycopy(IPByte, 0, id, 0, IPByte.length);
+        System.arraycopy(portByte, 0, id, IPByte.length, portByte.length);
 
         return id;
     }
@@ -89,9 +91,9 @@ public class DiffusionServeur {
         byte[] idMessage = idMessage();
 
         sonde[0] = 1 ;
-        System.arraycopy(idSiteByte, 0, sonde, 1, idSiteByte.length);
+        System.arraycopy(idSiteByte, 0, sonde, DEBUT_IDSITE, idSiteByte.length);
         System.arraycopy(idMessage, 0, sonde, idSiteByte.length+1, idMessage.length);
-        sonde[15] = tailleMessage ;
+        sonde[TAILLE_POSITION] = tailleMessage ;
         System.arraycopy(dataRecu, 2, sonde, tailleHeader, dataRecu[1]);
 
         return sonde;
@@ -113,14 +115,14 @@ public class DiffusionServeur {
 
         byte[] idSiteByte = new byte[6];
 
-        byte idMessage[] = Arrays.copyOfRange(dataRecu,7,15);
+        byte idMessage[] = Arrays.copyOfRange(dataRecu,DEBUT_IDMESSAGE,FIN_IDMESSAGE+1);
 
         System.arraycopy(Inet4Address.getLocalHost().getAddress(), 0, idSiteByte, 0, Inet4Address.getLocalHost().getAddress().length);
         System.arraycopy(SitePortByte, 0, idSiteByte, Inet4Address.getLocalHost().getAddress().length, SitePortByte.length);
 
         echo[0] = 2 ;
         System.arraycopy(idSiteByte, 0, echo, 1, idSiteByte.length);
-        System.arraycopy(idMessage, 0, echo, 7, idMessage.length);
+        System.arraycopy(idMessage, 0, echo, FIN_IDSITE+1, idMessage.length);
 
         return echo;
     }
@@ -131,16 +133,20 @@ public class DiffusionServeur {
             value = (value << 8) | b[i];
         return value;
     }
+    public int getIDMessage(byte[] ReceptionSonde)
+    {
+        int IPExp = convertByteToInt(Arrays.copyOfRange(ReceptionSonde,0,4));
+        short portExp = ByteBuffer.wrap(Arrays.copyOfRange(ReceptionSonde,4,6)).asShortBuffer().get();
+        short CptExp = ByteBuffer.wrap(Arrays.copyOfRange(ReceptionSonde,6,8)).asShortBuffer().get();
+        String idRecuString = Integer.toString(IPExp) + Integer.toString(portExp) + Integer.toString(CptExp);
+        return (int) Long.parseLong(idRecuString);
+    }
 
 
     public void demarrer() throws IOException {
         HashMap<Integer, Integer> l = new HashMap<>();
-        int IPExp;
-        short portExp;
-        short CptExp;
-        String idRecuString;
         int idRecu;
-        byte[] idSite = idSite();
+        idSite = idSite();
         while (true) {
             byte[] bufferReception = new byte[250];
             DatagramPacket packet = new DatagramPacket(bufferReception, bufferReception.length);
@@ -169,14 +175,9 @@ public class DiffusionServeur {
                     break;
                 case 1:
                     System.out.println("sonde reseau");
-                    int taille = bufferReception[15];
+                    int taille = bufferReception[TAILLE_POSITION];
 
-                    //TODO Faire une fonction "reconstruction idMessage
-                    IPExp = convertByteToInt(Arrays.copyOfRange(ReceptionSonde,7,11));
-                    portExp = ByteBuffer.wrap(Arrays.copyOfRange(ReceptionSonde,11,13)).asShortBuffer().get();
-                    CptExp = ByteBuffer.wrap(Arrays.copyOfRange(ReceptionSonde,13,15)).asShortBuffer().get();
-                    idRecuString = Integer.toString(IPExp) + Integer.toString(portExp) + Integer.toString(CptExp);
-                    idRecu = (int) Long.parseLong(idRecuString);
+                    idRecu = getIDMessage(Arrays.copyOfRange(ReceptionSonde,DEBUT_IDMESSAGE,FIN_IDMESSAGE+1));
 
                     if (l.containsKey(idRecu)) {
                         int nbVoisins = l.get(idRecu);
@@ -199,28 +200,19 @@ public class DiffusionServeur {
                         pointAPointSocket.send(packetAppLocale);
 
                         //envoi voisin - expediteur
-                        byte[] bufferVoisin;
                         DatagramPacket packetVoisin;
                         for (Site site : voisins)
                             if (!(site.getIp().equals(packet.getAddress()) && site.getPort() == packet.getPort())) {
-                                System.arraycopy(idSite, 0, forwardSondeBuffer, 1, idSite.length);
+                                System.arraycopy(idSite, 0, forwardSondeBuffer, DEBUT_IDSITE, idSite.length);
                                 packetVoisin = new DatagramPacket(forwardSondeBuffer, forwardSondeBuffer.length, InetAddress.getByName(site.getIp()), site.getPort());
                                 pointAPointSocket.send(packetVoisin);
                             }
-
                         l.put(idRecu, voisins.size() - 1);
                     }
                     break;
 
                 case 2:
-
-                    IPExp = convertByteToInt(Arrays.copyOfRange(ReceptionSonde,7,11));
-                    portExp = ByteBuffer.wrap(Arrays.copyOfRange(ReceptionSonde,11,13)).asShortBuffer().get();
-                    CptExp = ByteBuffer.wrap(Arrays.copyOfRange(ReceptionSonde,13,15)).asShortBuffer().get();
-
-                    idRecuString = Integer.toString(IPExp) + Integer.toString(portExp) + Integer.toString(CptExp);
-                    idRecu = (int) Long.parseLong(idRecuString);
-
+                    idRecu = getIDMessage(Arrays.copyOfRange(ReceptionSonde,DEBUT_IDMESSAGE,FIN_IDMESSAGE+1));
                     System.out.println("id recu Echo : " + idRecu);
                     int nbVoisins = l.get(idRecu);
                     l.remove(idRecu);

@@ -6,7 +6,7 @@ import java.net.SocketException;
  */
 public class Main {
     public static void main(String[] args) throws IOException {
-        DiffusionServeur ds = new DiffusionServeur((short)1237);
+        DiffusionServeur ds = new DiffusionServeur((short)1235);
         ds.demarrer();
     }
 }
