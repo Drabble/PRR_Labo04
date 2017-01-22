@@ -18,11 +18,11 @@ public class TextServeur {
                 e.printStackTrace();
             }
             try {
-                byte[] msg = new byte[230];
+                byte[] msg = new byte[232];
                 DatagramPacket msgPacket = new DatagramPacket(msg, msg.length);
                 pointAPointSocket1.receive(msgPacket);
                 System.out.println("New message");
-                System.out.println(new String(msgPacket.getData()));
+                System.out.println(new String(msgPacket.getData()).substring(1));
             } catch (SocketException e) {
                 e.printStackTrace();
             } catch (IOException e) {

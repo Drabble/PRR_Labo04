@@ -20,7 +20,7 @@ public class DiffusionServeur {
     DatagramSocket pointAPointSocket;
     ArrayList<Site> voisins = new ArrayList<>();
     short idCpt = 0;
-    short ipPortLocal = 1234;
+    short ipPortLocal = 1236;
     final int tailleHeader = 16;
     final int tailleEcho = 15;
     byte[] idSite;
@@ -33,7 +33,7 @@ public class DiffusionServeur {
     public DiffusionServeur(short port) throws SocketException {
         this.port = port;
         pointAPointSocket = new DatagramSocket(port);
-        Site tmpSite = new Site("127.0.1.1",1237);
+        Site tmpSite = new Site("127.0.1.1",1235);
         voisins.add(tmpSite);
     }
 
@@ -48,7 +48,6 @@ public class DiffusionServeur {
 
         byte[] IPByte = bufferIPByte.putInt(ip).array();
         byte[] portByte = bufferPortByte.putShort(port).array();
-
         byte[] cptByte = bufferCptByte.putShort(idCpt).array();
 
         System.arraycopy(IPByte, 0, id, 0, IPByte.length);
@@ -81,7 +80,6 @@ public class DiffusionServeur {
         ByteBuffer idSiteByteBuffer = ByteBuffer.allocate(2);
         byte[] idSiteByte = new byte[6];
         byte[] SitePortByte = idSiteByteBuffer.putShort(port).array();
-
 
         System.arraycopy(Inet4Address.getLocalHost().getAddress(), 0, idSiteByte, 0, Inet4Address.getLocalHost().getAddress().length);
         System.arraycopy(SitePortByte, 0, idSiteByte, Inet4Address.getLocalHost().getAddress().length, SitePortByte.length);
@@ -156,11 +154,11 @@ public class DiffusionServeur {
                 e.printStackTrace();
             }
             byte[] ReceptionSonde = packet.getData();
-            System.out.println(packet.getData()[0]);
+            System.out.println("Message de type " + packet.getData()[0]);
             switch (packet.getData()[0]) {
                 case 0:
-                    System.out.println("Received message from client");
-                    System.out.println(new String(packet.getData()));
+                    System.out.println("Recu un message d'un client");
+                    System.out.println(new String(packet.getData()).substring(1));
                     idCpt++;
                     String ID = Integer.toString(Inet4Address.getLocalHost().hashCode()) + Integer.toString(port) + Integer.toString(idCpt);
                     //TODO c'est pas bien !!!
@@ -175,6 +173,7 @@ public class DiffusionServeur {
                     break;
                 case 1:
                     System.out.println("sonde reseau");
+                    // TODO On a pas besoin de la taille ?
                     int taille = bufferReception[TAILLE_POSITION];
 
                     idRecu = getIDMessage(Arrays.copyOfRange(ReceptionSonde,DEBUT_IDMESSAGE,FIN_IDMESSAGE+1));
