@@ -3,13 +3,14 @@ import java.net.*;
 import java.util.Arrays;
 
 public class TextServeur {
-    // 2 datagram socket ?? synchronized ?
-    // Configurer adresse et port du serveur de diffusion
     DatagramSocket pointAPointSocket;
-    int PortDiffusion = 1235;
+    short portLocal;
+    short portDiffusion;
 
-    public TextServeur() throws SocketException {
-        pointAPointSocket = new DatagramSocket(1234);
+    public TextServeur(short portLocal, short portDiffusion) throws SocketException {
+        this.portLocal = portLocal;
+        this.portDiffusion = portDiffusion;
+        pointAPointSocket = new DatagramSocket(portLocal);
         new Thread(() -> {
             DatagramSocket pointAPointSocket1 = null;
             try {
@@ -42,6 +43,6 @@ public class TextServeur {
 
         System.out.println("taille : " + msg.getBytes().length);
 
-        pointAPointSocket.send(new DatagramPacket(packetBuffer, packetBuffer.length, InetAddress.getByName("localhost"), 1235));
+        pointAPointSocket.send(new DatagramPacket(packetBuffer, packetBuffer.length, InetAddress.getByName("localhost"), portDiffusion));
     }
 }
