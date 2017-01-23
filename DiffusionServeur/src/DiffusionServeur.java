@@ -20,7 +20,7 @@ public class DiffusionServeur {
     DatagramSocket pointAPointSocket;
     ArrayList<Site> voisins = new ArrayList<>();
     short idCpt = 0;
-    short ipPortLocal;
+    short portLocal;
     final int tailleHeader = 16;
     final int tailleEcho = 15;
     byte[] idSite;
@@ -33,7 +33,7 @@ public class DiffusionServeur {
     public DiffusionServeur(short port,short portLocal, ArrayList<Site> voisins) throws SocketException {
         this.port = port;
         pointAPointSocket = new DatagramSocket(port);
-        this.ipPortLocal = portLocal;
+        this.portLocal = portLocal;
         this.voisins = voisins;
         System.out.println("Démarrage du site " + port + "...");
 
@@ -249,8 +249,8 @@ public class DiffusionServeur {
 
                         // Envoi vers l'app local
                         byte[] message = Arrays.copyOfRange(packet.getData(),tailleHeader-1,tailleHeader+taille);
-                        DatagramPacket packetAppLocale = new DatagramPacket(message, message.length, Inet4Address.getLocalHost(), ipPortLocal);
-                        System.out.print("Envoi à l'application local sur le port " + ipPortLocal);
+                        DatagramPacket packetAppLocale = new DatagramPacket(message, message.length, Inet4Address.getLocalHost(), portLocal);
+                        System.out.println("Envoi à l'application local sur le port " + portLocal);
                         pointAPointSocket.send(packetAppLocale);
 
                         // Envoi voisin sauf l'expediteur
@@ -261,7 +261,7 @@ public class DiffusionServeur {
                                 System.arraycopy(idSite, 0, forwardSondeBuffer, DEBUT_IDSITE, idSite.length);
                                 packetVoisin = new DatagramPacket(forwardSondeBuffer, forwardSondeBuffer.length, InetAddress.getByName(site.getIp()), site.getPort());
                                 pointAPointSocket.send(packetVoisin);
-                                System.out.print("Forward du message reçu au voisin " + site.getIp() + site.getPort());
+                                System.out.println("Forward du message reçu au voisin " + site.getIp() + " " + site.getPort());
                             }
                         }
                         l.put(idRecu, voisins.size() - 1);

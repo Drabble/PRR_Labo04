@@ -22,7 +22,7 @@ public class TextServeur {
                 byte[] msg = new byte[232];
                 DatagramPacket msgPacket = new DatagramPacket(msg, msg.length);
                 pointAPointSocket1.receive(msgPacket);
-                System.out.println("New message");
+                System.out.print("Nouveau message reçu : ");
                 System.out.println(new String(msgPacket.getData()).substring(1));
             } catch (SocketException e) {
                 e.printStackTrace();
