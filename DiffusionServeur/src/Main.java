@@ -1,66 +1,75 @@
+/**
+ * Project: Labo04
+ * Authors: Antoine Drabble & Simon Baehler & Frederic Fyfer
+ * Date: 20.12.2016
+ * Object:
+*       Réalisez un programme Java qui implémente l'algorithme de diffusion de messages par le
+ *      paradigme sondes et échos.
+ * Rapport:
+ *      Chaque site se compose de 2 JVM. La première est une interface simple (textuelle)
+ *      permettant d'émettre un message aux autres sites et aussi d'afficher les messages
+ *      provenant des autres sites. La seconde JVM réalise le gestionnaire de diffusion, et c'est
+ *      cette JVM qui connait la topologie du réseau.
+ *
+ *      Les messages diffusés sont des chaînes de caractères qui n'excèdent pas 230
+ *      caractères.
+ *      Ces sites et le réseau qui les interconnecte sont entièrement fiables.
+ *      La communication entre les sites se fait uniquement par UDP point-à-point.
+ *      Le réseau est général et ne support pas de mécanisme de diffusion omis celui réalisé.
+ *
+ *      Nous avons séparé les deux JVM dans deux projets distinct. Le premier est le gestionnaire de diffusion et le
+ *      deuxième est l'interface textuelle. Nous avons défini une classe Protocole qui définit les différents
+ *      types de messages envoyé (local, sonde, echo) et une classe Site qui définit un site.
+ *
+ *      Les mains des deux projets doivent être démarrer avec les bons paramêtres (voir javadoc).
+ *      Le code du serveur de diffusion est basé sur le pseudocode donné dans la données du labo.
+ *
+ *      L'id d'un message suit le format suivant:
+ *      ip (4 bytes) + port (2 bytes) + compteur (2 bytes)
+ *
+ *      L'id d'un site suit le même format que les messages mais sans compteur.
+ *
+ *      Exemple de paramêtres pour démarrer le parque des sites.
+ *      Démarrage des interfaces textuelles :
+ *      1234 1235
+ *      1236 1237
+ *      1238 1239
+ *      1240 1241
+ *
+ *      Démarrage des gestionnaires de diffusion :
+ *      1234 1235 127.0.0.1 1237 127.0.0.1 1239 127.0.0.1 1241
+ *      1236 1237 127.0.0.1 1235 127.0.0.1 1239
+ *      1238 1239 127.0.0.1 1235 127.0.0.1 1237 127.0.0.1 1241
+ *      1240 1241 127.0.0.1 1235 127.0.0.1 1239
+ *
+ *
+ */
 import java.io.IOException;
-import java.net.SocketException;
 import java.util.ArrayList;
 
 /**
- * Created by antoi on 12/20/2016.
+ * Démarre un nouveau gestionnaire de diffusion
+ * Pour démarrer un nouveau serveur de diffusion. Les paramêtres suivant doivent être fourni :
+ *      portLocal portDiffusion ipVoisin portVoisin [ipVoisin portVoisin]
  */
 public class Main {
     public static void main(String[] args) throws IOException {
-
-        int startSite = 4;
-        ArrayList<Site> listeVoisinsSite1 = new ArrayList<>();
-        ArrayList<Site> listeVoisinsSite2 = new ArrayList<>();
-        ArrayList<Site> listeVoisinsSite3 = new ArrayList<>();
-        ArrayList<Site> listeVoisinsSite4 = new ArrayList<>();
-
-        short portAplLocalle1 = 1234;
-        short portAplLocalle2 = 1236;
-        short portAplLocalle3 = 1238;
-        short portAplLocalle4 = 1240;
-
-        short portDiffusion1 = 1235;
-        short portDiffusion2 = 1237;
-        short portDiffusion3 = 1239;
-        short portDiffusion4 = 1241;
-
-        Site site1 = new Site("127.0.0.1",portDiffusion1 );
-        Site site2 = new Site("127.0.0.1",portDiffusion2 );
-        Site site3 = new Site("127.0.0.1",portDiffusion3 );
-        Site site4 = new Site("127.0.0.1",portDiffusion4 );
-
-        listeVoisinsSite1.add(site2);
-        listeVoisinsSite1.add(site3);
-        listeVoisinsSite1.add(site4);
-
-        listeVoisinsSite2.add(site1);
-        listeVoisinsSite2.add(site3);
-
-        listeVoisinsSite3.add(site1);
-        listeVoisinsSite3.add(site2);
-        listeVoisinsSite3.add(site4);
-
-        listeVoisinsSite4.add(site1);
-        listeVoisinsSite4.add(site3);
-
-
-        if(startSite == 1)
-        {
-            DiffusionServeur ds1 = new DiffusionServeur(portDiffusion1,portAplLocalle1,listeVoisinsSite1);
-            ds1.demarrer();
-        }else if (startSite == 2)
-        {
-            DiffusionServeur ds2 = new DiffusionServeur(portDiffusion2,portAplLocalle2,listeVoisinsSite2);
-            ds2.demarrer();
-        }else if(startSite == 3)
-        {
-            DiffusionServeur ds3 = new DiffusionServeur(portDiffusion3,portAplLocalle3,listeVoisinsSite3);
-            ds3.demarrer();
+        // Récupération du port local et du port de diffusion
+        if (args.length < 4 && args.length % 2 == 0) {
+            System.out.println("Il faut fournir au moins le port local, le port de diffusion et un voisin. Il faut également fournir un port et une ip pour chaque voisin");
+            return;
         }
-        else if(startSite == 4)
-        {
-            DiffusionServeur ds4 = new DiffusionServeur(portDiffusion4,portAplLocalle4,listeVoisinsSite4);
-            ds4.demarrer();
+        short portLocal = Short.valueOf(args[0]);
+        short portDiffusion = Short.valueOf(args[1]);
+
+        // Ajout des lieurs à la liste
+        ArrayList<Site> voisins = new ArrayList<>();
+        for (int i = 2; i < args.length - 1; i += 2) {
+            voisins.add(new Site(args[i], Short.valueOf(args[i + 1])));
         }
+
+        // Démarrer le serveur de diffusion
+        DiffusionServeur ds = new DiffusionServeur(portDiffusion,portLocal,voisins);
+        ds.demarrer();
     }
 }

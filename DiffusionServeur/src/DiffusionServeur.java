@@ -1,9 +1,8 @@
 /**
  * Project: Labo04
- * Authors: Antoine Drabble & Simon Baehler
+ * Authors: Antoine Drabble & Simon Baehler & Frederic Fyfer
  * Date: 20.12.2016
  */
-
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
@@ -12,7 +11,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 /**
- *
+ * Gestionnaire de diffusion de messages pour le paradigme sondes et échos
  */
 public class DiffusionServeur {
     // Création du socket point à point pour l'envoi de packet UDP
@@ -24,28 +23,30 @@ public class DiffusionServeur {
     final int tailleHeader = 16;
     final int tailleEcho = 15;
     byte[] idSite;
-    int DEBUT_IDSITE = 1;
-    int FIN_IDSITE = 6;
-    int DEBUT_IDMESSAGE = 7;
-    int FIN_IDMESSAGE = 14;
-    int TAILLE_POSITION = 15;
+    final int DEBUT_IDSITE = 1;
+    final int FIN_IDSITE = 6;
+    final int DEBUT_IDMESSAGE = 7;
+    final int FIN_IDMESSAGE = 14;
+    final int TAILLE_POSITION = 15;
 
+    /**
+     * Création d'un nouveau gestionnaire de diffusion
+     *
+     * @param port
+     * @param portLocal
+     * @param voisins
+     * @throws SocketException
+     */
     public DiffusionServeur(short port,short portLocal, ArrayList<Site> voisins) throws SocketException {
         this.port = port;
         pointAPointSocket = new DatagramSocket(port);
         this.portLocal = portLocal;
         this.voisins = voisins;
         System.out.println("Démarrage du site " + port + "...");
-
-        /*for(int i = 0 ; i < voisins.size() ;i++)
-        {
-            System.out.print(voisins.get(i).getPort()
-            System.out.println(voisins.get(i).getIp());
-        }*/
     }
 
     /**
-     * fonction de création d'id de message.
+     * Fonction de création d'id de message.
      * Un id de message est construit de la façon suivante :
      * taille de 8 bytes
      * 4 pour l'ip du serveur expéditeur
@@ -73,8 +74,9 @@ public class DiffusionServeur {
 
         return id;
     }
+
     /**
-     * fonction de création d'id de site.
+     * Fonction de création d'id de site.
      * Un id de message est construit de la façon suivante :
      * taille de 6 bytes
      * 4 pour l'ip du serveur expéditeur
@@ -99,10 +101,8 @@ public class DiffusionServeur {
         return id;
     }
 
-
-
     /**
-     * fonction de création d'id de sonde.
+     * Fonction de création d'id de sonde.
      * une sonde et fait de la manière suivante :
      * 1er byte : indique que le packet sera de type sonde (pur différentier du type echo et local)
      * 6 bytes pour l'id du site
@@ -125,7 +125,7 @@ public class DiffusionServeur {
 
         byte[] idMessage = idMessage();
 
-        sonde[0] = 1 ;
+        sonde[0] = (byte)Protocole.SONDE.ordinal();
         System.arraycopy(idSiteByte, 0, sonde, DEBUT_IDSITE, idSiteByte.length);
         System.arraycopy(idMessage, 0, sonde, idSiteByte.length+1, idMessage.length);
         sonde[TAILLE_POSITION] = tailleMessage ;
@@ -134,10 +134,8 @@ public class DiffusionServeur {
         return sonde;
     }
 
-
-
     /**
-     * fonction de création d'id d'echo.
+     * Fonction de création d'id d'echo.
      * un echo et fait de la manière suivante :
      * 1er byte : indique que le packet sera de type echo (pur différentier du type sonde et local)
      * 6 bytes pour l'id du site
@@ -146,7 +144,7 @@ public class DiffusionServeur {
      * @param dataRecu dataRecu
      * @throws UnknownHostException
      */
-    byte[] createEcho(byte[] dataRecu) throws UnknownHostException {
+    byte[] creationEcho(byte[] dataRecu) throws UnknownHostException {
 
         byte[] echo = new byte[tailleEcho];
 
@@ -160,13 +158,20 @@ public class DiffusionServeur {
         System.arraycopy(Inet4Address.getLocalHost().getAddress(), 0, idSiteByte, 0, Inet4Address.getLocalHost().getAddress().length);
         System.arraycopy(SitePortByte, 0, idSiteByte, Inet4Address.getLocalHost().getAddress().length, SitePortByte.length);
 
-        echo[0] = 2 ;
+        echo[0] = (byte)Protocole.ECHO.ordinal();
         System.arraycopy(idSiteByte, 0, echo, 1, idSiteByte.length);
         System.arraycopy(idMessage, 0, echo, FIN_IDSITE+1, idMessage.length);
 
         return echo;
     }
-    public int convertByteToInt(byte[] b)
+
+    /**
+     * Transforme un byte en int
+     *
+     * @param b
+     * @return
+     */
+    public int byteToInt(byte[] b)
     {
         int value= 0;
         for(int i=0; i<b.length; i++)
@@ -175,7 +180,7 @@ public class DiffusionServeur {
     }
 
     /**
-     * fonction de decortication de message
+     * Fonction de decortication de message
      * elle recupère l'id du message reçu
      *
      * @param ReceptionSonde ReceptionSonde
@@ -183,14 +188,18 @@ public class DiffusionServeur {
      */
     public Long getIDMessage(byte[] ReceptionSonde)
     {
-        int IPExp = convertByteToInt(Arrays.copyOfRange(ReceptionSonde,0,4));
+        int IPExp = byteToInt(Arrays.copyOfRange(ReceptionSonde,0,4));
         short portExp = ByteBuffer.wrap(Arrays.copyOfRange(ReceptionSonde,4,6)).asShortBuffer().get();
         short CptExp = ByteBuffer.wrap(Arrays.copyOfRange(ReceptionSonde,6,8)).asShortBuffer().get();
         String idRecuString = Integer.toString(IPExp) + Integer.toString(portExp) + Integer.toString(CptExp);
         return Long.parseLong(idRecuString);
     }
 
-
+    /**
+     * Démarre le serveur de diffusion
+     *
+     * @throws IOException
+     */
     public void demarrer() throws IOException {
         HashMap<Long, Integer> l = new HashMap<>();
         Long idRecu;
@@ -207,66 +216,62 @@ public class DiffusionServeur {
             byte[] ReceptionSonde = packet.getData();
             System.out.println("--------------------------------------------");
             System.out.println("Réception d'un message de type " + packet.getData()[0]);
-            switch (packet.getData()[0]) {
-                case 0:
-                    System.out.print("Recu un message d'un client : ");
-                    System.out.println(new String(packet.getData()).substring(2));
-                    idCpt++;
-                    String ID = Integer.toString(Inet4Address.getLocalHost().hashCode()) + Integer.toString(port) + Integer.toString(idCpt);
+            if(packet.getData()[0] == Protocole.LOCAL.ordinal()) {
+                System.out.print("Recu un message d'un client : ");
+                System.out.println(new String(packet.getData()).substring(2, packet.getData()[1]));
+                idCpt++;
+                String ID = Integer.toString(Inet4Address.getLocalHost().hashCode()) + Integer.toString(port) + Integer.toString(idCpt);
 
-                    System.out.println("Id expedié : " + ID);
-                    //TODO c'est pas bien !!!
-                    l.put(Long.parseLong(ID), voisins.size());
-                    for (Site voisin : voisins) {
-                        byte[] bufferSonde;
-                        byte tailleMessage = packet.getData()[1];
-                        bufferSonde = sondeCreateur(packet.getData(),tailleMessage);
-                        System.out.println("Envoi du paquet au voisin " + voisin.getIp() + ":" + voisin.getPort());
-                        DatagramPacket packetSonde = new DatagramPacket(bufferSonde, bufferSonde.length, InetAddress.getByName(voisin.getIp()), voisin.getPort());
-                        pointAPointSocket.send(packetSonde);
+                System.out.println("Id expedié : " + ID);
+                l.put(Long.parseLong(ID), voisins.size());
+                for (Site voisin : voisins) {
+                    byte[] bufferSonde;
+                    byte tailleMessage = packet.getData()[1];
+                    bufferSonde = sondeCreateur(packet.getData(), tailleMessage);
+                    System.out.println("Envoi du paquet au voisin " + voisin.getIp() + ":" + voisin.getPort());
+                    DatagramPacket packetSonde = new DatagramPacket(bufferSonde, bufferSonde.length, InetAddress.getByName(voisin.getIp()), voisin.getPort());
+                    pointAPointSocket.send(packetSonde);
+                }
+            } else if(packet.getData()[0] == Protocole.SONDE.ordinal()) {
+                int taille = bufferReception[TAILLE_POSITION];
+
+                idRecu = getIDMessage(Arrays.copyOfRange(ReceptionSonde, DEBUT_IDMESSAGE, FIN_IDMESSAGE + 1));
+                System.out.println("Id expedié : " + idRecu);
+                if (l.containsKey(idRecu)) {
+                    int nbVoisins = l.get(idRecu);
+                    l.remove(idRecu);
+
+                    if (nbVoisins > 1) {
+                        System.out.println("Voisin -1 sur " + idRecu + " " + (nbVoisins - 1));
+                        l.put(idRecu, nbVoisins - 1);
                     }
-                    break;
-                case 1:
-                    // TODO On a pas besoin de la taille ?
-                    int taille = bufferReception[TAILLE_POSITION];
+                } else {
+                    // Renvoi a l'expediteur
+                    byte[] echoPacketBuffer = creationEcho(packet.getData());
+                    byte[] forwardSondeBuffer = packet.getData();
+                    DatagramPacket packetEcho = new DatagramPacket(echoPacketBuffer, echoPacketBuffer.length, packet.getAddress(), packet.getPort());
+                    pointAPointSocket.send(packetEcho);
 
-                    idRecu = getIDMessage(Arrays.copyOfRange(ReceptionSonde,DEBUT_IDMESSAGE,FIN_IDMESSAGE+1));
-                    System.out.println("Id expedié : " + idRecu);
-                    if (l.containsKey(idRecu)) {
-                        int nbVoisins = l.get(idRecu);
-                        l.remove(idRecu);
+                    // Envoi vers l'app local
+                    byte[] message = Arrays.copyOfRange(packet.getData(), tailleHeader - 1, tailleHeader + taille);
+                    System.out.print(packet.getData()[tailleHeader - 1]);
+                    DatagramPacket packetAppLocale = new DatagramPacket(message, message.length, Inet4Address.getLocalHost(), portLocal);
+                    System.out.println("Envoi à l'application local sur le port " + portLocal);
+                    pointAPointSocket.send(packetAppLocale);
 
-                        if (nbVoisins > 1) {
-                            System.out.println("Voisin -1 sur " + idRecu + " " + (nbVoisins - 1));
-                            l.put(idRecu, nbVoisins - 1);
+                    // Envoi voisin sauf l'expediteur
+                    DatagramPacket packetVoisin;
+                    System.out.println(packet.getAddress().getHostAddress());
+                    for (Site site : voisins)
+                        if (!(site.getIp().equals(packet.getAddress().getHostAddress()) && site.getPort() == packet.getPort())) {
+                            System.arraycopy(idSite, 0, forwardSondeBuffer, DEBUT_IDSITE, idSite.length);
+                            packetVoisin = new DatagramPacket(forwardSondeBuffer, forwardSondeBuffer.length, InetAddress.getByName(site.getIp()), site.getPort());
+                            pointAPointSocket.send(packetVoisin);
+                            System.out.println("Forward du message reçu au voisin " + site.getIp() + " " + site.getPort());
                         }
-                    } else {
-                        // Renvoi a l'expediteur
-                        byte[] echoPacketBuffer = createEcho(packet.getData());
-                        byte[] forwardSondeBuffer = packet.getData();
-                        DatagramPacket packetEcho = new DatagramPacket(echoPacketBuffer, echoPacketBuffer.length, packet.getAddress(), packet.getPort());
-                        pointAPointSocket.send(packetEcho);
-
-                        // Envoi vers l'app local
-                        byte[] message = Arrays.copyOfRange(packet.getData(),tailleHeader-1,tailleHeader+taille);
-                        DatagramPacket packetAppLocale = new DatagramPacket(message, message.length, Inet4Address.getLocalHost(), portLocal);
-                        System.out.println("Envoi à l'application local sur le port " + portLocal);
-                        pointAPointSocket.send(packetAppLocale);
-
-                        // Envoi voisin sauf l'expediteur
-                        DatagramPacket packetVoisin;
-                        System.out.println(packet.getAddress().getHostAddress());
-                        for (Site site : voisins)
-                            if (!(site.getIp().equals(packet.getAddress().getHostAddress()) && site.getPort() == packet.getPort())) {
-                                System.arraycopy(idSite, 0, forwardSondeBuffer, DEBUT_IDSITE, idSite.length);
-                                packetVoisin = new DatagramPacket(forwardSondeBuffer, forwardSondeBuffer.length, InetAddress.getByName(site.getIp()), site.getPort());
-                                pointAPointSocket.send(packetVoisin);
-                                System.out.println("Forward du message reçu au voisin " + site.getIp() + " " + site.getPort());
-                            }
-                        }
-                        l.put(idRecu, voisins.size() - 1);
-                    break;
-                case 2:
+                }
+                l.put(idRecu, voisins.size() - 1);
+            } else if(packet.getData()[0] == Protocole.ECHO.ordinal()){
                     idRecu = getIDMessage(Arrays.copyOfRange(ReceptionSonde,DEBUT_IDMESSAGE,FIN_IDMESSAGE+1));
                     System.out.println("Id reçu dans l'echo : " + idRecu);
                     int nbVoisins = l.get(idRecu);

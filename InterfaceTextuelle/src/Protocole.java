@@ -10,6 +10,5 @@
 public enum Protocole {
     LOCAL,
     SONDE,
-    ECHO;
-    public static final Protocole values[] = values();
+    ECHO
 }

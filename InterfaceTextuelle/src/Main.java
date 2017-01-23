@@ -1,8 +1,15 @@
+/**
+ * Project: Labo04
+ * Authors: Antoine Drabble & Simon Baehler & Frederic Fyfer
+ * Date: 20.12.2016
+ */
 import java.io.IOException;
-import java.net.SocketException;
 import java.util.Scanner;
 
-
+/**
+ * Démarre un serveur textuelle. Les paramêtres suivant doivent être fourni:
+ *      portLocal portDiffusion
+ */
 public class Main {
     public static void main(String[] args) throws IOException {
         if(args.length != 2){

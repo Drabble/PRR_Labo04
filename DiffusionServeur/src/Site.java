@@ -1,5 +1,11 @@
 /**
- * Created by antoi on 12/20/2016.
+ * Project: Labo04
+ * Authors: Antoine Drabble & Simon Baehler & Frederic Fyfer
+ * Date: 20.12.2016
+ */
+
+/**
+ * Défini un site d'un parque de machine
  */
 public class Site {
     private String ip;
