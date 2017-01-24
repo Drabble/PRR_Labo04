@@ -60,14 +60,17 @@ public class DiffusionServeur {
         byte[] id = new byte[8];
         int ip = Inet4Address.getLocalHost().hashCode();
 
+        // Allocation de l'espace nécessaire pour les trois bufers.
         ByteBuffer bufferIPByte = ByteBuffer.allocate(4);
         ByteBuffer bufferPortByte = ByteBuffer.allocate(2);
         ByteBuffer bufferCptByte = ByteBuffer.allocate(2);
 
+        // Transformation en tableau de bytes.
         byte[] IPByte = bufferIPByte.putInt(ip).array();
         byte[] portByte = bufferPortByte.putShort(port).array();
         byte[] cptByte = bufferCptByte.putShort(idCpt).array();
 
+        // Remplissage des tableaux de bytes avec les données.
         System.arraycopy(IPByte, 0, id, 0, IPByte.length);
         System.arraycopy(portByte, 0, id, IPByte.length, portByte.length);
         System.arraycopy(cptByte, 0, id, IPByte.length+portByte.length, cptByte.length);
@@ -89,12 +92,15 @@ public class DiffusionServeur {
         byte[] id = new byte[6];
         int ip = Inet4Address.getLocalHost().hashCode();
 
+        // Allocation de l'espace nécessaire pour les deux bufers.
         ByteBuffer bufferIPByte = ByteBuffer.allocate(4);
         ByteBuffer bufferPortByte = ByteBuffer.allocate(2);
 
+        // Transformation en tableau de bytes.
         byte[] IPByte = bufferIPByte.putInt(ip).array();
         byte[] portByte = bufferPortByte.putShort(port).array();
 
+        // Remplissage des tableaux de bytes avec les données.
         System.arraycopy(IPByte, 0, id, 0, IPByte.length);
         System.arraycopy(portByte, 0, id, IPByte.length, portByte.length);
 
@@ -113,22 +119,22 @@ public class DiffusionServeur {
      * @throws UnknownHostException
      */
     byte[] sondeCreateur(byte[] dataRecu, byte tailleMessage) throws UnknownHostException {
-
+        // Création des buffers et remplissage avec les données.
         ByteBuffer idSiteByteBuffer = ByteBuffer.allocate(2);
         byte[] idSiteByte = new byte[6];
         byte[] SitePortByte = idSiteByteBuffer.putShort(port).array();
-
         System.arraycopy(Inet4Address.getLocalHost().getAddress(), 0, idSiteByte, 0, Inet4Address.getLocalHost().getAddress().length);
         System.arraycopy(SitePortByte, 0, idSiteByte, Inet4Address.getLocalHost().getAddress().length, SitePortByte.length);
 
         byte[] sonde = new byte[dataRecu[1] + tailleHeader];
-
         byte[] idMessage = idMessage();
 
         sonde[0] = (byte)Protocole.SONDE.ordinal();
         System.arraycopy(idSiteByte, 0, sonde, DEBUT_IDSITE, idSiteByte.length);
         System.arraycopy(idMessage, 0, sonde, idSiteByte.length+1, idMessage.length);
-        sonde[TAILLE_POSITION] = tailleMessage ;
+
+        // Remplissage du bit dédié à la taille du message.
+        sonde[TAILLE_POSITION] = tailleMessage;
         System.arraycopy(dataRecu, 2, sonde, tailleHeader, dataRecu[1]);
 
         return sonde;
@@ -145,16 +151,14 @@ public class DiffusionServeur {
      * @throws UnknownHostException
      */
     byte[] creationEcho(byte[] dataRecu) throws UnknownHostException {
-
+        // Création des buffers.
         byte[] echo = new byte[tailleEcho];
-
         ByteBuffer idSiteByteBuffer = ByteBuffer.allocate(2);
         byte[] SitePortByte = idSiteByteBuffer.putShort(port).array();
-
         byte[] idSiteByte = new byte[6];
-
         byte idMessage[] = Arrays.copyOfRange(dataRecu,DEBUT_IDMESSAGE,FIN_IDMESSAGE+1);
 
+        // Remplissage avec les données.
         System.arraycopy(Inet4Address.getLocalHost().getAddress(), 0, idSiteByte, 0, Inet4Address.getLocalHost().getAddress().length);
         System.arraycopy(SitePortByte, 0, idSiteByte, Inet4Address.getLocalHost().getAddress().length, SitePortByte.length);
 
@@ -205,17 +209,25 @@ public class DiffusionServeur {
         Long idRecu;
         idSite = idSite();
         System.out.println("Site " + port + " démarré!");
+
         while (true) {
+            // Préparation du buffer et packet permettant la réception du message.
             byte[] bufferReception = new byte[250];
             DatagramPacket packet = new DatagramPacket(bufferReception, bufferReception.length);
+
+            // Réception du packet.
             try {
                 pointAPointSocket.receive(packet);
             } catch (IOException e) {
                 e.printStackTrace();
             }
+
+            // Récupération des données contenues dans le packet.
             byte[] ReceptionSonde = packet.getData();
             System.out.println("--------------------------------------------");
             System.out.println("Réception d'un message de type " + packet.getData()[0]);
+
+            // Si il s'agit d'un message de type LOCAL.
             if(packet.getData()[0] == Protocole.LOCAL.ordinal()) {
                 System.out.print("Recu un message d'un client : ");
                 System.out.println(new String(packet.getData()).substring(2, packet.getData()[1]));
@@ -224,6 +236,8 @@ public class DiffusionServeur {
 
                 System.out.println("Id expedié : " + ID);
                 l.put(Long.parseLong(ID), voisins.size());
+
+                // Envoie d'une sonde à tous les voisins.
                 for (Site voisin : voisins) {
                     byte[] bufferSonde;
                     byte tailleMessage = packet.getData()[1];
@@ -232,11 +246,14 @@ public class DiffusionServeur {
                     DatagramPacket packetSonde = new DatagramPacket(bufferSonde, bufferSonde.length, InetAddress.getByName(voisin.getIp()), voisin.getPort());
                     pointAPointSocket.send(packetSonde);
                 }
+            // Si il s'agit dun message de type SONDE.
             } else if(packet.getData()[0] == Protocole.SONDE.ordinal()) {
                 int taille = bufferReception[TAILLE_POSITION];
 
                 idRecu = getIDMessage(Arrays.copyOfRange(ReceptionSonde, DEBUT_IDMESSAGE, FIN_IDMESSAGE + 1));
                 System.out.println("Id expedié : " + idRecu);
+
+                // Suppression de l'ID reçu si celui ci est déjà présent.
                 if (l.containsKey(idRecu)) {
                     int nbVoisins = l.get(idRecu);
                     l.remove(idRecu);
@@ -271,6 +288,7 @@ public class DiffusionServeur {
                         }
                 }
                 l.put(idRecu, voisins.size() - 1);
+            // Si il s'agit d'un message de type ECHO.
             } else if(packet.getData()[0] == Protocole.ECHO.ordinal()){
                     idRecu = getIDMessage(Arrays.copyOfRange(ReceptionSonde,DEBUT_IDMESSAGE,FIN_IDMESSAGE+1));
                     System.out.println("Id reçu dans l'echo : " + idRecu);
