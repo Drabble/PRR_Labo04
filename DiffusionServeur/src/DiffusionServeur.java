@@ -230,7 +230,7 @@ public class DiffusionServeur {
             // Si il s'agit d'un message de type LOCAL.
             if(packet.getData()[0] == Protocole.LOCAL.ordinal()) {
                 System.out.print("Recu un message d'un client : ");
-                System.out.println(new String(packet.getData()).substring(2, packet.getData()[1]));
+                System.out.println(new String(packet.getData()).substring(2, packet.getData()[1] + 2));
                 idCpt++;
                 String ID = Integer.toString(Inet4Address.getLocalHost().hashCode()) + Integer.toString(port) + Integer.toString(idCpt);
 
